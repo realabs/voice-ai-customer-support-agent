@@ -95,6 +95,8 @@ More detail: [docs/lessons-learned.md](docs/lessons-learned.md) · Cost model: [
 | [`template/n8n/vapi-tools-webhook.json`](template/n8n/vapi-tools-webhook.json) | Importable n8n workflow: one webhook, routing by tool name, admin API + Zendesk, Vapi-formatted response |
 | [`examples/`](examples/) | A real-shaped Vapi `tool-calls` request, the expected response, and a curl test |
 
+![n8n workflow: one webhook routes Vapi tool calls to the backend API and Zendesk](docs/assets/n8n-workflow.png)
+
 Setup in short:
 
 1. Copy `.env.example` and set your backend and Zendesk values in n8n's environment.
