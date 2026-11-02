@@ -1,0 +1,22 @@
+{
+  "type": "function",
+  "function": {
+    "name": "check_active_ride",
+    "description": "Check whether the customer has a ride that is still running.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "account_id": {
+          "type": "string",
+          "description": "account_id returned by lookup_account"
+        }
+      },
+      "required": [
+        "account_id"
+      ]
+    }
+  },
+  "server": {
+    "url": "https://YOUR_N8N_HOST/webhook/vapi-tools"
+  }
+}

@@ -1,0 +1,633 @@
+{
+  "name": "Voice agent - Vapi tool calls (template)",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Vapi tool-calls webhook (template)\nOne endpoint for all tools of the voice agent.\n\n1. Set env vars: BACKEND_API_URL, BACKEND_API_TOKEN, ZENDESK_URL\n2. Attach an HTTP Basic Auth credential to **Zendesk: create ticket**\n3. Point every Vapi tool's server URL to this webhook\n\nAccount lookup uses the caller's number first (call.customer.number) and only falls back to a dictated number.\nOne tool call per request is handled (Vapi's normal behaviour).",
+        "height": 300,
+        "width": 420
+      },
+      "id": "a20fe818-d0ad-4109-bde1-98ad70faaa86",
+      "name": "Sticky Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -80,
+        -420
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "vapi-tools",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "c7826703-b30f-43cc-9cf9-d82e08f2c066",
+      "name": "Vapi webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "86ea760d-1579-4b53-85dc-8761f5c6bda4"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Vapi sends: { message: { type: 'tool-calls', toolCallList: [...], call: { customer: { number } } } }\n// Arguments arrive as an object (sometimes as a JSON string): handle both.\nconst body = $input.first().json.body || $input.first().json;\nconst msg = body.message || {};\nconst callerNumber = (msg.call && msg.call.customer && msg.call.customer.number) || (msg.customer && msg.customer.number) || '';\nconst calls = msg.toolCallList || msg.toolCalls || [];\nconst out = [];\nfor (const tc of calls) {\n  const fn = tc.function || {};\n  let args = fn.arguments || {};\n  if (typeof args === 'string') {\n    try { args = JSON.parse(args); } catch (e) { args = {}; }\n  }\n  // Caller ID first; a dictated number only when the agent passes one explicitly\n  let phone = String(args.phone_number || callerNumber || '').replace(/[^0-9+]/g, '');\n  if (phone && phone[0] !== '+') { phone = '+' + phone; }\n  out.push({ json: { toolCallId: tc.id, name: fn.name, args: args, phone: phone, callerNumber: callerNumber } });\n}\nreturn out;"
+      },
+      "id": "398b59fd-1aae-4aab-bde9-517a2a74775c",
+      "name": "Parse tool calls",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "88d6a03e-eef4-404a-b2d7-0764c810017e",
+                    "leftValue": "={{ $json.name }}",
+                    "rightValue": "lookup_account",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "lookup_account"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "fda6967a-a69e-4d05-8bb3-9fda8ffae241",
+                    "leftValue": "={{ $json.name }}",
+                    "rightValue": "check_active_ride",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "check_active_ride"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "8587b331-a017-4a85-bf9d-c43ed533065c",
+                    "leftValue": "={{ $json.name }}",
+                    "rightValue": "end_ride",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "end_ride"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "01c916a0-b386-4a00-ab4c-59bed5c52ebb",
+                    "leftValue": "={{ $json.name }}",
+                    "rightValue": "check_balance",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "check_balance"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "98553c93-832d-4e64-a306-4b33ce515f1b",
+                    "leftValue": "={{ $json.name }}",
+                    "rightValue": "create_ticket",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "create_ticket"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      },
+      "id": "0f9745d1-b8fe-465b-8621-0bb23292d17d",
+      "name": "Route by tool",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [
+        440,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.BACKEND_API_URL }}/v1/accounts?phone={{ encodeURIComponent($json.phone) }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.BACKEND_API_TOKEN }}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "15ce23eb-6b4e-4e61-801d-4005a04f7dcb",
+      "name": "Backend: lookup account",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        700,
+        -480
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.BACKEND_API_URL }}/v1/accounts/{{ $json.args.account_id }}/rides/active",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.BACKEND_API_TOKEN }}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "5e2bc6b7-7af2-4151-9ce6-cbe642067a5f",
+      "name": "Backend: active ride",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        700,
+        -280
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.BACKEND_API_URL }}/v1/rides/{{ $json.args.ride_id }}/end",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.BACKEND_API_TOKEN }}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ account_id: $json.args.account_id, reason: 'ended_by_voice_agent' }) }}"
+      },
+      "id": "64c573a3-39e2-4e9a-ac1b-2581208fc577",
+      "name": "Backend: end ride",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        700,
+        -80
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.BACKEND_API_URL }}/v1/accounts/{{ $json.args.account_id }}/wallets",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.BACKEND_API_TOKEN }}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "002fcd0d-c618-4134-bc4a-af0eb7e94667",
+      "name": "Backend: wallets",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        700,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.ZENDESK_URL }}/api/v2/tickets.json",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ ticket: {\n  subject: 'Voice call: ' + String($json.args.summary || '').slice(0, 80),\n  comment: { body: ($json.args.summary || '') + '\\n\\nCaller number: ' + ($json.callerNumber || 'unknown') + '\\nContact number: ' + ($json.args.phone_number || $json.callerNumber || 'unknown') + '\\nAccount: ' + ($json.args.account_id || 'not identified') + '\\nLanguage: ' + ($json.args.language || 'es') + '\\nSource: voice agent', public: false },\n  priority: $json.args.priority === 'high' ? 'urgent' : 'normal',\n  tags: ['voice_agent', 'lang_' + ($json.args.language || 'es')],\n  requester: { name: 'Phone caller ' + ($json.args.phone_number || $json.callerNumber || '') }\n} }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "661c7b80-ff00-437f-859e-b8bc56c6bc87",
+      "name": "Zendesk: create ticket",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        700,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const req = $('Parse tool calls').item.json;\nreturn { json: { toolCallId: req.toolCallId, result: JSON.stringify({ status: 'error', message: 'Unknown tool ' + req.name }) } };"
+      },
+      "id": "83473a40-c330-4dec-8d2b-51a37535ba46",
+      "name": "Unknown tool",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        700,
+        520
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const r = $json;\nconst req = $('Parse tool calls').item.json;\nconst a = r.body || {};\nlet result;\nif (r.statusCode === 200 && a.account_id) {\n  result = { status: 'found', account_id: a.account_id, first_name: a.first_name || '', used_caller_id: !req.args.phone_number };\n} else {\n  result = { status: 'not_found', used_caller_id: !req.args.phone_number,\n    next_step: req.args.phone_number ? 'Offer to create a ticket for a human.' : 'Ask the caller for the phone number registered in the app, with country code.' };\n}\nreturn { json: { toolCallId: req.toolCallId, result: JSON.stringify(result) } };"
+      },
+      "id": "42aa8762-9b98-43de-a6e3-0a51516b0fcc",
+      "name": "Format: lookup_account",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        940,
+        -480
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const r = $json;\nconst req = $('Parse tool calls').item.json;\nconst ride = r.body || {};\nlet result;\nif (r.statusCode === 200 && ride.ride_id) {\n  result = { status: 'active', ride_id: ride.ride_id, started_minutes_ago: ride.started_minutes_ago };\n} else if (r.statusCode === 404 || r.statusCode === 200) {\n  result = { status: 'no_active_ride' };\n} else {\n  result = { status: 'error', next_step: 'Apologize and offer to create a ticket.' };\n}\nreturn { json: { toolCallId: req.toolCallId, result: JSON.stringify(result) } };"
+      },
+      "id": "badd99de-f210-4a16-959e-f4a1fbd6eba4",
+      "name": "Format: check_active_ride",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        940,
+        -280
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const r = $json;\nconst req = $('Parse tool calls').item.json;\nconst ok = r.statusCode >= 200 && r.statusCode < 300;\nconst result = ok\n  ? { status: 'ended', ride_id: req.args.ride_id, note: 'Billing stopped.' }\n  : { status: 'failed', next_step: 'Create a ticket so a human ends the ride manually.' };\nreturn { json: { toolCallId: req.toolCallId, result: JSON.stringify(result) } };"
+      },
+      "id": "6b814a48-57d3-4aad-a264-07d2dc048abf",
+      "name": "Format: end_ride",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        940,
+        -80
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const r = $json;\nconst req = $('Parse tool calls').item.json;\n// Balances live in wallets[], one per country/currency. Keep only non-zero ones.\nconst wallets = (r.body && r.body.wallets) || [];\nconst items = [];\nfor (const w of wallets) {\n  if ((w.balance || 0) > 0 || (w.bonus || 0) > 0) {\n    items.push({ currency: w.currency, balance: w.balance || 0, bonus: w.bonus || 0 });\n  }\n}\nconst result = r.statusCode === 200\n  ? { status: 'ok', wallets: items }\n  : { status: 'error', next_step: 'Apologize and offer to create a ticket.' };\nreturn { json: { toolCallId: req.toolCallId, result: JSON.stringify(result) } };"
+      },
+      "id": "e6a7c2d2-13f9-401f-ade0-75022fd59c86",
+      "name": "Format: check_balance",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        940,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const r = $json;\nconst req = $('Parse tool calls').item.json;\nconst t = (r.body && r.body.ticket) || {};\nconst result = (r.statusCode === 201 || r.statusCode === 200) && t.id\n  ? { status: 'created', ticket_id: t.id, promise: 'An agent will contact the customer on WhatsApp within 30 minutes.' }\n  : { status: 'failed', next_step: 'Apologize and ask the customer to write on WhatsApp.' };\nreturn { json: { toolCallId: req.toolCallId, result: JSON.stringify(result) } };"
+      },
+      "id": "de9a5731-493e-4f12-b20d-9dd828e5a7fd",
+      "name": "Format: create_ticket",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        940,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ results: [{ toolCallId: $json.toolCallId, result: $json.result }] }) }}",
+        "options": {}
+      },
+      "id": "4228526a-80bb-41d0-8ca4-5a9de2861fa8",
+      "name": "Respond to Vapi",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1200,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "Vapi webhook": {
+      "main": [
+        [
+          {
+            "node": "Parse tool calls",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse tool calls": {
+      "main": [
+        [
+          {
+            "node": "Route by tool",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route by tool": {
+      "main": [
+        [
+          {
+            "node": "Backend: lookup account",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Backend: active ride",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Backend: end ride",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Backend: wallets",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Zendesk: create ticket",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Unknown tool",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Backend: lookup account": {
+      "main": [
+        [
+          {
+            "node": "Format: lookup_account",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Backend: active ride": {
+      "main": [
+        [
+          {
+            "node": "Format: check_active_ride",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Backend: end ride": {
+      "main": [
+        [
+          {
+            "node": "Format: end_ride",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Backend: wallets": {
+      "main": [
+        [
+          {
+            "node": "Format: check_balance",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Zendesk: create ticket": {
+      "main": [
+        [
+          {
+            "node": "Format: create_ticket",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format: lookup_account": {
+      "main": [
+        [
+          {
+            "node": "Respond to Vapi",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format: check_active_ride": {
+      "main": [
+        [
+          {
+            "node": "Respond to Vapi",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format: end_ride": {
+      "main": [
+        [
+          {
+            "node": "Respond to Vapi",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format: check_balance": {
+      "main": [
+        [
+          {
+            "node": "Respond to Vapi",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format: create_ticket": {
+      "main": [
+        [
+          {
+            "node": "Respond to Vapi",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Unknown tool": {
+      "main": [
+        [
+          {
+            "node": "Respond to Vapi",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "active": false
+}

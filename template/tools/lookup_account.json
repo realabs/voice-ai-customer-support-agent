@@ -1,0 +1,20 @@
+{
+  "type": "function",
+  "function": {
+    "name": "lookup_account",
+    "description": "Find the customer's account. Call it first WITHOUT phone_number: the system uses the caller's number. Pass phone_number only if the first lookup returned not_found and the caller dictated their registered number.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "phone_number": {
+          "type": "string",
+          "description": "Phone number in international format, e.g. +525512345678. Omit to use the caller's number."
+        }
+      },
+      "required": []
+    }
+  },
+  "server": {
+    "url": "https://YOUR_N8N_HOST/webhook/vapi-tools"
+  }
+}

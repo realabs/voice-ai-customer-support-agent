@@ -1,0 +1,22 @@
+{
+  "type": "function",
+  "function": {
+    "name": "check_balance",
+    "description": "Read the customer's wallet balances and bonuses in every country.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "account_id": {
+          "type": "string",
+          "description": "account_id returned by lookup_account"
+        }
+      },
+      "required": [
+        "account_id"
+      ]
+    }
+  },
+  "server": {
+    "url": "https://YOUR_N8N_HOST/webhook/vapi-tools"
+  }
+}

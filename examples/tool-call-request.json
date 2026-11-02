@@ -1,0 +1,19 @@
+{
+  "message": {
+    "type": "tool-calls",
+    "toolCallList": [
+      {
+        "id": "call_demo_001",
+        "type": "function",
+        "function": {
+          "name": "lookup_account",
+          "arguments": {}
+        }
+      }
+    ],
+    "call": {
+      "id": "demo-call-id",
+      "customer": { "number": "+525512345678" }
+    }
+  }
+}

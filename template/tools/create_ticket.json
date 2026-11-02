@@ -1,0 +1,49 @@
+{
+  "type": "function",
+  "function": {
+    "name": "create_ticket",
+    "description": "Create a Zendesk case so a human agent contacts the customer on WhatsApp.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "summary": {
+          "type": "string",
+          "description": "One sentence in English describing the problem"
+        },
+        "language": {
+          "type": "string",
+          "enum": [
+            "es",
+            "en",
+            "pt",
+            "ru"
+          ],
+          "description": "Language the caller used"
+        },
+        "priority": {
+          "type": "string",
+          "enum": [
+            "normal",
+            "high"
+          ],
+          "description": "high for accidents, injuries or safety issues"
+        },
+        "account_id": {
+          "type": "string",
+          "description": "account_id if known"
+        },
+        "phone_number": {
+          "type": "string",
+          "description": "Contact number if the caller gave one different from the calling number"
+        }
+      },
+      "required": [
+        "summary",
+        "language"
+      ]
+    }
+  },
+  "server": {
+    "url": "https://YOUR_N8N_HOST/webhook/vapi-tools"
+  }
+}

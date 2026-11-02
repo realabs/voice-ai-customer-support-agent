@@ -1,0 +1,8 @@
+{
+  "results": [
+    {
+      "toolCallId": "call_demo_001",
+      "result": "{\"status\":\"found\",\"account_id\":\"acc_123\",\"first_name\":\"Ana\",\"used_caller_id\":true}"
+    }
+  ]
+}

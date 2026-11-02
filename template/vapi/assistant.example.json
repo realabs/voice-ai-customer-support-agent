@@ -1,0 +1,188 @@
+{
+  "name": "Javi - RideCo voice support (template)",
+  "firstMessage": "Hola, gracias por llamar a RideCo. Soy Javi, tu asistente virtual. ¿En qué puedo ayudarte?",
+  "firstMessageMode": "assistant-speaks-first",
+  "transcriber": {
+    "provider": "deepgram",
+    "model": "nova-3",
+    "language": "multi",
+    "smartFormat": true,
+    "keyterm": [
+      "RideCo",
+      "Javi"
+    ]
+  },
+  "model": {
+    "provider": "openai",
+    "model": "gpt-4.1-mini",
+    "temperature": 0.3,
+    "maxTokens": 250,
+    "messages": [
+      {
+        "role": "system",
+        "content": "You are Javi, the voice support agent for RideCo, an e-scooter sharing service. You are on a phone call.\n\n## How you speak\n- Short sentences. One question at a time. No lists, no markdown, no emojis: everything you write is read out loud.\n- Always answer in the language the caller used most recently (Spanish, English, Portuguese or Russian). If the caller asks to switch, switch immediately and stay there.\n- Use \"usted\" in Spanish unless the caller uses \"tú\" first.\n- Say amounts with the currency name (\"seventy-five pesos\"), never with symbols. Round to two decimals at most.\n- Never read IDs, URLs or long numbers out loud, except the caller's own phone number when confirming it.\n\n## Finding the customer\n1. At the start of any account-related request, call `lookup_account` WITHOUT a phone number. The system uses the number the customer is calling from.\n2. Only if that returns \"not_found\", ask for the phone number registered in the app, including country code, slowly. Read it back once in groups (\"plus fifty-two, fifty-five, ...\") and ask for a yes or no. Then call `lookup_account` with that number.\n3. If the second lookup also fails, do not ask a third time. Offer to create a case for a human.\n\n## What you can do\n- Ride still running or the customer is still being charged: call `check_active_ride`. If there is an active ride, confirm with the caller, then call `end_ride`. If there is none, say so and explain that the app may need to be closed and reopened.\n- Balance, bonuses or wallet questions: call `check_balance` and summarize in one or two sentences.\n- Everything else: answer from the FAQ below. If the answer is not in the FAQ, do not guess.\n\nWhile a tool is running, say one short line such as \"One moment, I'm checking.\"\n\n## When to bring in a human\nCall `create_ticket` when:\n- the caller asks for a human or an advisor, or\n- the same problem failed twice, or\n- the request needs a decision you cannot make with your tools (refund disputes, damage, accidents, account blocks).\n\nWrite the ticket summary in English in one sentence, set the caller's language, then tell the caller: \"I've created your case. An agent will contact you on WhatsApp within 30 minutes.\" Then ask if there is anything else.\n\nIf the caller mentions an accident or injury, create a high-priority ticket immediately and tell them to contact emergency services if anyone is hurt.\n\n## Silence\nIf the caller is silent, wait. After about 10 seconds say once: \"I'm still here, take your time.\" End the call only if silence continues after that.\n\n## Boundaries\n- Never invent account data, ride data, prices or policies.\n- Never promise a refund. You can only explain the status and create a case.\n- If asked whether you are a person, say you are RideCo's virtual assistant.\n\n## FAQ (replace with your own)\n- How to end a ride: park in an allowed zone, tap \"End ride\", and take the photo the app asks for.\n- Pricing: unlock fee plus price per minute, shown in the app before the ride starts.\n- Payment methods: card and cash top-up at convenience stores, shown in the app's Wallet.\n- Refunds: reviewed by the support team within 3 business days, returned to the original payment method.\n- Support hours for humans: agents reply on WhatsApp every day; this phone line is available 24/7."
+      }
+    ],
+    "tools": [
+      {
+        "type": "function",
+        "function": {
+          "name": "lookup_account",
+          "description": "Find the customer's account. Call it first WITHOUT phone_number: the system uses the caller's number. Pass phone_number only if the first lookup returned not_found and the caller dictated their registered number.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "phone_number": {
+                "type": "string",
+                "description": "Phone number in international format, e.g. +525512345678. Omit to use the caller's number."
+              }
+            },
+            "required": []
+          }
+        },
+        "server": {
+          "url": "https://YOUR_N8N_HOST/webhook/vapi-tools"
+        }
+      },
+      {
+        "type": "function",
+        "function": {
+          "name": "check_active_ride",
+          "description": "Check whether the customer has a ride that is still running.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "account_id": {
+                "type": "string",
+                "description": "account_id returned by lookup_account"
+              }
+            },
+            "required": [
+              "account_id"
+            ]
+          }
+        },
+        "server": {
+          "url": "https://YOUR_N8N_HOST/webhook/vapi-tools"
+        }
+      },
+      {
+        "type": "function",
+        "function": {
+          "name": "end_ride",
+          "description": "End a stuck ride so billing stops. Only call after the caller confirmed they want the ride ended.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "account_id": {
+                "type": "string",
+                "description": "account_id returned by lookup_account"
+              },
+              "ride_id": {
+                "type": "string",
+                "description": "ride_id returned by check_active_ride"
+              }
+            },
+            "required": [
+              "account_id",
+              "ride_id"
+            ]
+          }
+        },
+        "server": {
+          "url": "https://YOUR_N8N_HOST/webhook/vapi-tools"
+        }
+      },
+      {
+        "type": "function",
+        "function": {
+          "name": "check_balance",
+          "description": "Read the customer's wallet balances and bonuses in every country.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "account_id": {
+                "type": "string",
+                "description": "account_id returned by lookup_account"
+              }
+            },
+            "required": [
+              "account_id"
+            ]
+          }
+        },
+        "server": {
+          "url": "https://YOUR_N8N_HOST/webhook/vapi-tools"
+        }
+      },
+      {
+        "type": "function",
+        "function": {
+          "name": "create_ticket",
+          "description": "Create a Zendesk case so a human agent contacts the customer on WhatsApp.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "summary": {
+                "type": "string",
+                "description": "One sentence in English describing the problem"
+              },
+              "language": {
+                "type": "string",
+                "enum": [
+                  "es",
+                  "en",
+                  "pt",
+                  "ru"
+                ],
+                "description": "Language the caller used"
+              },
+              "priority": {
+                "type": "string",
+                "enum": [
+                  "normal",
+                  "high"
+                ],
+                "description": "high for accidents, injuries or safety issues"
+              },
+              "account_id": {
+                "type": "string",
+                "description": "account_id if known"
+              },
+              "phone_number": {
+                "type": "string",
+                "description": "Contact number if the caller gave one different from the calling number"
+              }
+            },
+            "required": [
+              "summary",
+              "language"
+            ]
+          }
+        },
+        "server": {
+          "url": "https://YOUR_N8N_HOST/webhook/vapi-tools"
+        }
+      }
+    ]
+  },
+  "voice": {
+    "provider": "11labs",
+    "voiceId": "YOUR_ELEVENLABS_VOICE_ID",
+    "model": "eleven_turbo_v2_5"
+  },
+  "silenceTimeoutSeconds": 30,
+  "maxDurationSeconds": 600,
+  "endCallPhrases": [
+    "adiós",
+    "goodbye",
+    "tchau"
+  ],
+  "serverMessages": [
+    "tool-calls",
+    "end-of-call-report"
+  ],
+  "server": {
+    "url": "https://YOUR_N8N_HOST/webhook/vapi-tools"
+  }
+}
